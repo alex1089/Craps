@@ -1,6 +1,6 @@
 // Aleksey Leshchuk
 // Cisp440
-// Craps Simulator
+// Craps Simulator, runs 10000 games and displays stats
 
 #include <iostream>
 #include <random> // random number generator
@@ -10,6 +10,8 @@ using namespace std;
 // enum for win on first roll at XX
 enum FirstRollWin { FWSEVEN, FWELEVEN };
 enum FirstRollLoss { FLTWO, FLTHREE, FLTWELVE };
+// enum for result of first roll
+enum FirstRollResult { WON, LOST, POINT };
 // enumeration for point scored for readability
 enum Points { FOUR, FIVE, SIX, EIGHT, NINE, TEN};
 
@@ -21,14 +23,8 @@ class Craps {
 	    longest_run(0)
 	{
 	    init();
-	    char choice;
-	    do {
-		cout<<"press y to play: ";
-		cin>>choice;
-		if (choice=='y')
-		    firstRoll();
-		cout<<choice;
-	    } while (!(choice == 'n'));
+	    for (int i=0; i<10000;i++)
+		firstRoll();
 	    printStats();
 	}
 	// simulate dice throw
@@ -38,7 +34,6 @@ class Craps {
 	    static uniform_int_distribution<int> dist(1,6);	    // range from [1,6]
 	    roll = dist(gen)+dist(gen);
 	    dice_rolls[roll-2]++;		    // increment the roll counter for X outcome
-	    cout<<"rolled: "<<roll<<endl;
 	    return roll;
 	}
 	void firstRoll() {
@@ -46,18 +41,17 @@ class Craps {
 	    switch (roll){
 		case 7:
 		case 11:
-		    // TODO: remove output for user
-		    cout<<"you won with "<<roll<<endl;
+		    first_roll_result[WON]++;
 		    win(roll,true);		    // win on 'roll', first roll? true
 		    break;
 		case 2:
 		case 3:
 		case 12:
-		    // TODO: remove output for user
-		    cout<<"You lost on first throw with: "<<roll<<endl;
+		    first_roll_result[LOST]++;
 		    loss(roll, true);		    // lost on 'roll' , first roll? true
 		    break;
 		default:
+		    first_roll_result[POINT]++;
 		    pointRoll(roll);		    // continue game with point
 		    break;
 	    }
@@ -157,15 +151,48 @@ class Craps {
 	    for (int i: dice_rolls)
 		total_dice_rolls+=i;
 	    for (int i=0; i<11;i++)	    // display stat for dice roll distribution
-		cout<<fixed<<setprecision(2)<<"Roll: "<<i+2<<" = "<<static_cast<double>(dice_rolls[i])/total_dice_rolls*100<<"%"<<endl;
+		cout<<fixed<<setprecision(0)<<"Roll: "<<i+2<<" = "<<static_cast<double>(dice_rolls[i])/total_dice_rolls*100<<"%"<<endl;
 	    
 	    // total wins/loses
-	    cout<<"\nTotal Wins:\n"<<setw(25)<<static_cast<double>(total_wins)/total_rolls*100<<"%\n";
-	    cout<<"\nTotal Loses: \n"<<setw(25)<<static_cast<double>(total_losses)/total_rolls*100<<"%\n";
+	    cout<<"Total Wins:\n"<<setw(25)<<static_cast<double>(total_wins)/total_rolls*100<<"%\n";
+	    cout<<"Total Loses: \n"<<setw(25)<<static_cast<double>(total_losses)/total_rolls*100<<"%\n";
 
-	    // wins/loses on first roll
-	    cout<<"Wins on first roll:\n"<<setw(25)<<static_cast<double>(first_throw_wins[0]+first_throw_wins[1])/total_rolls*100<<"%\n";
-	    cout<<"Loses on first roll:\n"<<setw(25)<<static_cast<double>(first_throw_losses[0]+first_throw_losses[1])/total_rolls*100<<"%\n";
+	    
+	    // distribution of first roll results
+	    cout<<"Results of the first roll: \n";
+	    cout<<"Won: "<<static_cast<double>(first_roll_result[WON])/total_rolls*100<<"%"<<endl;
+	    cout<<"Lost: "<<static_cast<double>(first_roll_result[LOST])/total_rolls*100<<"%"<<endl;
+	    cout<<"Point: "<<static_cast<double>(first_roll_result[POINT])/total_rolls*100<<"%"<<endl;
+
+	    // distribution of points received
+	    cout<<"\nDistribution of points:\n";
+	    for (int i=0; i<6;i++){
+		cout<<"Point: ";
+		switch (i) {
+		    case 0:
+			cout<<"FOUR ";
+			break;
+		    case 1:
+			cout<<"FIVE ";
+			break;
+		    case 2:
+			cout<<"SIX ";
+			break;
+		    case 3:
+			cout<<"EIGHT ";
+			break;
+		    case 4:
+			cout<<"NINE ";
+			break;
+		    case 5:
+			cout<<"TEN ";
+			break;
+		}
+		cout<<": "<<static_cast<double>(win_with_point[i]+loss_with_point[i])/first_roll_result[POINT]*100<<"%"<<endl;
+		cout<<setw(14)<<"Won: "<<static_cast<double>(win_with_point[i])/(win_with_point[i]+loss_with_point[i])*100<<"%"<<endl;
+		cout<<setw(14)<<"Lost: "<<static_cast<double>(loss_with_point[i])/(win_with_point[i]+loss_with_point[i])*100<<"%"<<endl;
+	    }
+
 
 
 	}
@@ -173,6 +200,8 @@ class Craps {
 	// initializes all array variables
 	void init(){
 	    for (int& i:dice_rolls)
+		i=0;
+	    for (int& i: first_roll_result)
 		i=0;
 	    for (int& i:first_throw_wins)
 		i=0;
@@ -184,6 +213,7 @@ class Craps {
 		i=0;
 	}
 	int dice_rolls[11];	    // stats for dice rolls
+	int first_roll_result[3];
 	int total_wins;		    // total wins
 	int total_losses;	    // total losses
 	int first_throw_wins[2];	    // wins on first throw at point X
